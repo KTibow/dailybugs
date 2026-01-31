@@ -4,69 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/icon.svg" />
+    <link rel="stylesheet" href="/base.css" />
     <title>Daily Bugs</title>
     <style>
-      :root {
-        font-family: system-ui;
-        color-scheme: light dark;
-        background-color: var(--m3c-surface);
-        color: var(--m3c-on-surface);
-        --m3c-surface: light-dark(#f9f9f9, #131313);
-        --m3c-surface-container-lowest: light-dark(#fff, #0e0e0e);
-        --m3c-surface-container-low: light-dark(#f3f3f3, #1b1b1b);
-        --m3c-surface-container: light-dark(#eee, #1f1f1f);
-        --m3c-surface-container-high: light-dark(#e8e8e8, #2a2a2a);
-        --m3c-surface-container-highest: light-dark(#e2e2e2, #353535);
-        --m3c-on-surface: light-dark(#1b1b1b, #e2e2e2);
-        --m3c-on-surface-variant: light-dark(#474747, #c6c6c6);
-        --m3c-outline: light-dark(#777, #919191);
-        --m3c-outline-variant: light-dark(#c6c6c6, #474747);
-        --m3c-inverse-surface: light-dark(#303030, #e2e2e2);
-        --m3c-inverse-on-surface: light-dark(#f1f1f1, #303030);
-        --m3c-primary: light-dark(#97480e, #ffb68c);
-        --m3c-on-primary: light-dark(#fff, #532200);
-        --m3c-primary-container: light-dark(#ffdbc9, #753400);
-        --m3c-on-primary-container: light-dark(#753400, #ffdbc9);
-        --m3c-inverse-primary: light-dark(#ffb68c, #97480e);
-        --m3c-secondary: light-dark(#765847, #e5bfaa);
-        --m3c-on-secondary: light-dark(#fff, #432b1d);
-        --m3c-secondary-container: light-dark(#ffdbc9, #5c4131);
-        --m3c-on-secondary-container: light-dark(#5c4131, #ffdbc9);
-        --m3c-tertiary: light-dark(#626033, #ccc992);
-        --m3c-on-tertiary: light-dark(#fff, #333208);
-        --m3c-tertiary-container: light-dark(#e9e5ab, #4a481d);
-        --m3c-on-tertiary-container: light-dark(#4a481d, #e9e5ab);
-        --m3c-error: light-dark(#ba1a1a, #ffb4ab);
-        --m3c-on-error: light-dark(#fff, #690005);
-        --m3c-error-container: light-dark(#ffdad6, #93000a);
-        --m3c-on-error-container: light-dark(#93000a, #ffdad6);
-        --m3c-shadow: #000;
-        --m3c-scrim: #000;
-        --m3c-on-on-primary: light-dark(#9c4c12, #fb9759);
-        --m3c-primary-container-subtle: light-dark(#ffd0b7, #602900);
-        --m3c-on-primary-container-subtle: light-dark(#7e3800, #ffa773);
-        --m3c-secondary-container-subtle: light-dark(#fad2bd, #4d3325);
-        --m3c-on-secondary-container-subtle: light-dark(#624637, #dab4a0);
-        --m3c-tertiary-container-subtle: light-dark(#e0dda4, #3c3b11);
-        --m3c-on-tertiary-container-subtle: light-dark(#504e23, #c2be88);
-        --m3c-error-container-subtle: light-dark(#ffcfc9, #790006);
-        --m3c-on-error-container-subtle: light-dark(#9e000b, #ffa49a);
-        --m3-shape-full: calc(infinity * 1px);
-      }
-      body {
-        display: flex;
-        flex-direction: column;
-        padding: 1rem;
-        min-height: 100dvh;
-      }
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        font: inherit;
-      }
-      a {
-        text-decoration: inherit;
-      }
       body > a {
         display: flex;
         height: 4rem;
@@ -85,7 +25,8 @@
     </style>
   </head>
   <body>
-    <a href="https://github.com/login/oauth/authorize?client_id=Ov23liZ42ZbwqopYT7Y6"
+    <a
+      href="https://github.com/login/oauth/authorize?client_id=Ov23liZ42ZbwqopYT7Y6&scope=user:email"
       >Enable Daily Bugs</a
     >
     <p>Disable Daily Bugs on <a href="https://github.com/settings/installations">GitHub</a>.</p>
