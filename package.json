@@ -14,7 +14,6 @@
     "@tsndr/cloudflare-worker-jwt": "^3.2.1",
     "@worker-tools/request-cookie-store": "0.6.0-pre.3",
     "prettier": "^3.8.1",
-    "resend": "^6.9.1",
     "typescript": "^5.5.2",
     "wrangler": "^4.61.1"
   }
