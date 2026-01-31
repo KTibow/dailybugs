@@ -22,7 +22,7 @@ const callback = async (_: Request, url: URL): Promise<Response> => {
 
   const octokit = new Octokit({ auth: accessToken });
   const { data: userData } = await octokit.request("GET /user");
-  await env.USERS.put(userData.id.toString(), accessToken);
+  await env.USERS.put(`ghtoken:${userData.id.toString()}`, accessToken);
 
   return new Response("OK");
 };
