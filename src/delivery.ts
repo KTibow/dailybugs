@@ -2,12 +2,18 @@ import { env } from "cloudflare:workers";
 import { Resend } from "resend";
 const resend = new Resend(env.RESEND_KEY);
 
+const REVOKE_URL = `https://github.com/settings/connections/applications/${env.GITHUB_CLIENT_ID}`;
 export const sendEmail = async (targetEmail: string, subject: string, text: string) => {
   const { error } = await resend.emails.send({
     from: "bugs@dailybugs.kendell.dev",
     to: targetEmail,
     subject,
-    text,
+    text: `${text}
+
+Unsubscribe by revoking access at ${REVOKE_URL}.`,
+    headers: {
+      "list-unsubscribe": `<${REVOKE_URL}>`,
+    },
   });
   if (error) {
     throw new Error(error.name);
