@@ -4,7 +4,7 @@ import { RequestCookieStore } from "@worker-tools/request-cookie-store";
 import { sign, verify } from "@tsndr/cloudflare-worker-jwt";
 import { setDelivery } from "./delivery";
 
-type RequestExt = Omit<Request, "url"> & { url: URL; cookieStore: RequestCookieStore };
+type RequestExt = Request & { urlData: URL; cookieStore: RequestCookieStore };
 const loadAuth = async (cookieStore: RequestCookieStore) => {
   const jwtInfo = await cookieStore.get("jwt");
   if (!jwtInfo) throw new Response("Unauthorized", { status: 401 });
@@ -20,8 +20,8 @@ const loadAuth = async (cookieStore: RequestCookieStore) => {
   return { sub };
 };
 
-const callback = async ({ url, cookieStore }: RequestExt): Promise<Response> => {
-  const code = url.searchParams.get("code");
+const callback = async ({ urlData, cookieStore }: RequestExt): Promise<Response> => {
+  const code = urlData.searchParams.get("code");
   if (!code) throw new Response("Code not provided", { status: 400 });
 
   const r = await fetch("https://github.com/login/oauth/access_token", {
@@ -67,17 +67,17 @@ const changeDelivery = async ({ formData, cookieStore }: RequestExt): Promise<Re
 export default {
   async fetch(_request) {
     const request = Object.assign(_request, {
-      url: new URL(_request.url),
+      urlData: new URL(_request.url),
       cookieStore: new RequestCookieStore(_request),
     });
     try {
-      if (request.url.pathname == "/callback") {
+      if (request.urlData.pathname == "/callback") {
         if (request.method == "GET") {
           return await callback(request);
         }
         throw new Response("Method not allowed", { status: 405 });
       }
-      if (request.url.pathname == "/changedelivery") {
+      if (request.urlData.pathname == "/changedelivery") {
         if (request.method == "POST") {
           return await changeDelivery(request);
         }
