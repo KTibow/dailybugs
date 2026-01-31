@@ -47,10 +47,15 @@ const callback = async ({ urlData, cookieStore }: RequestExt): Promise<Response>
   await cookieStore.set({ name: "jwt", value: jwt, httpOnly: true });
   await env.KV.put(`ghtoken:${userId}`, accessToken);
 
-  return Response.redirect("/");
+  const home = new URL("/", urlData);
+  return Response.redirect(home.href);
 };
 
-const changeDelivery = async ({ formData, cookieStore }: RequestExt): Promise<Response> => {
+const changeDelivery = async ({
+  urlData,
+  formData,
+  cookieStore,
+}: RequestExt): Promise<Response> => {
   const { sub } = await loadAuth(cookieStore);
 
   const form = await formData();
@@ -61,7 +66,8 @@ const changeDelivery = async ({ formData, cookieStore }: RequestExt): Promise<Re
 
   await setDelivery(sub, data ? `${method}:${data}` : method);
 
-  return Response.redirect("/");
+  const home = new URL("/", urlData);
+  return Response.redirect(home.href);
 };
 
 export default {
