@@ -19,8 +19,13 @@ const loadAuth = async (cookieStore: RequestCookieStore) => {
 
   return { sub };
 };
+const redirectHome = (headersInit?: HeadersInit) => {
+  const headers = new Headers(headersInit);
+  headers.set("location", "/");
+  throw new Response(undefined, { status: 302, headers });
+};
 
-const callback = async ({ urlData, cookieStore }: RequestExt): Promise<Response> => {
+const callback = async ({ urlData, cookieStore }: RequestExt) => {
   const code = urlData.searchParams.get("code");
   if (!code) throw new Response("Code not provided", { status: 400 });
 
@@ -47,15 +52,10 @@ const callback = async ({ urlData, cookieStore }: RequestExt): Promise<Response>
   await cookieStore.set({ name: "jwt", value: jwt, httpOnly: true });
   await env.KV.put(`ghtoken:${userId}`, accessToken);
 
-  const home = new URL("/", urlData);
-  return Response.redirect(home.href);
+  redirectHome(cookieStore.headers);
 };
 
-const changeDelivery = async ({
-  urlData,
-  formData,
-  cookieStore,
-}: RequestExt): Promise<Response> => {
+const changeDelivery = async ({ urlData, formData, cookieStore }: RequestExt) => {
   const { sub } = await loadAuth(cookieStore);
 
   const form = await formData();
@@ -66,8 +66,7 @@ const changeDelivery = async ({
 
   await setDelivery(sub, data ? `${method}:${data}` : method);
 
-  const home = new URL("/", urlData);
-  return Response.redirect(home.href);
+  redirectHome(cookieStore.headers);
 };
 
 export default {
@@ -79,13 +78,13 @@ export default {
     try {
       if (request.urlData.pathname == "/callback") {
         if (request.method == "GET") {
-          return await callback(request);
+          await callback(request);
         }
         throw new Response("Method not allowed", { status: 405 });
       }
       if (request.urlData.pathname == "/changedelivery") {
         if (request.method == "POST") {
-          return await changeDelivery(request);
+          await changeDelivery(request);
         }
         throw new Response("Method not allowed", { status: 405 });
       }
