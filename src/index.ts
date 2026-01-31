@@ -1,9 +1,28 @@
 import { env } from "cloudflare:workers";
 import { Octokit } from "@octokit/rest";
+import { RequestCookieStore } from "@worker-tools/request-cookie-store";
+import { sign, verify } from "@tsndr/cloudflare-worker-jwt";
+import { setDelivery } from "./delivery";
 
-const callback = async (_: Request, url: URL): Promise<Response> => {
+type RequestExt = Omit<Request, "url"> & { url: URL; cookieStore: RequestCookieStore };
+const loadAuth = async (cookieStore: RequestCookieStore) => {
+  const jwtInfo = await cookieStore.get("jwt");
+  if (!jwtInfo) throw new Response("Unauthorized", { status: 401 });
+
+  const jwtDecoded = await verify(jwtInfo.value, env.JWT_SECRET);
+  if (!jwtDecoded) throw new Response("Unauthorized", { status: 401 });
+
+  const {
+    payload: { sub },
+  } = jwtDecoded;
+  if (!sub) throw new Response("Unauthorized", { status: 401 });
+
+  return { sub };
+};
+
+const callback = async ({ url, cookieStore }: RequestExt): Promise<Response> => {
   const code = url.searchParams.get("code");
-  if (!code) return new Response("Code not provided", { status: 400 });
+  if (!code) throw new Response("Code not provided", { status: 400 });
 
   const r = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
@@ -14,28 +33,62 @@ const callback = async (_: Request, url: URL): Promise<Response> => {
       code,
     }),
   });
-  if (!r.ok) return new Response(`GitHub is ${r.status}ing`, { status: 500 });
+  if (!r.ok) throw new Response(`GitHub is ${r.status}ing`, { status: 500 });
 
   const tokenData = await r.json<any>();
-  if (tokenData.error) return new Response(`GitHub says ${tokenData.error}`, { status: 500 });
+  if (tokenData.error) throw new Response(`GitHub says ${tokenData.error}`, { status: 500 });
   const accessToken = tokenData.access_token as string;
 
   const octokit = new Octokit({ auth: accessToken });
   const { data: userData } = await octokit.request("GET /user");
-  await env.USERS.put(`ghtoken:${userData.id.toString()}`, accessToken);
+  const userId = userData.id.toString();
 
-  return new Response("OK");
+  const jwt = await sign({ sub: userId }, env.JWT_SECRET);
+  await cookieStore.set({ name: "jwt", value: jwt, httpOnly: true });
+  await env.KV.put(`ghtoken:${userId}`, accessToken);
+
+  return Response.redirect("/");
+};
+
+const changeDelivery = async ({ formData, cookieStore }: RequestExt): Promise<Response> => {
+  const { sub } = await loadAuth(cookieStore);
+
+  const form = await formData();
+  const method = form.get("method");
+  if (typeof method != "string") throw new Response("Invalid data", { status: 400 });
+  const data = form.get("data");
+  if (data && typeof data != "string") throw new Response("Invalid data", { status: 400 });
+
+  await setDelivery(sub, data ? `${method}:${data}` : method);
+
+  return Response.redirect("/");
 };
 
 export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    if (url.pathname == "/callback") {
-      if (request.method == "GET") {
-        return await callback(request, url);
+  async fetch(_request) {
+    const request = Object.assign(_request, {
+      url: new URL(_request.url),
+      cookieStore: new RequestCookieStore(_request),
+    });
+    try {
+      if (request.url.pathname == "/callback") {
+        if (request.method == "GET") {
+          return await callback(request);
+        }
+        throw new Response("Method not allowed", { status: 405 });
       }
-      return new Response("Method not allowed", { status: 405 });
+      if (request.url.pathname == "/changedelivery") {
+        if (request.method == "POST") {
+          return await changeDelivery(request);
+        }
+        throw new Response("Method not allowed", { status: 405 });
+      }
+      throw new Response("Page not found", { status: 404 });
+    } catch (e) {
+      if (e instanceof Response) {
+        return e;
+      }
+      throw e;
     }
-    return new Response("Page not found", { status: 404 });
   },
 } satisfies ExportedHandler<Env>;

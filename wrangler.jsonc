@@ -35,7 +35,7 @@
   "assets": { "directory": "./frontend/", "binding": "ASSETS" },
   "kv_namespaces": [
     {
-      "binding": "USERS",
+      "binding": "KV",
       "id": "14d0806265f64ebbacd8abcf4f4365b9",
     },
   ],
