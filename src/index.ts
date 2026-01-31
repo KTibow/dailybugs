@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import github from "./github";
+import { Octokit } from "@octokit/rest";
 
 const callback = async (_: Request, url: URL): Promise<Response> => {
   const code = url.searchParams.get("code");
@@ -20,8 +20,9 @@ const callback = async (_: Request, url: URL): Promise<Response> => {
   if (tokenData.error) return new Response(`GitHub says ${tokenData.error}`, { status: 500 });
   const accessToken = tokenData.access_token as string;
 
-  const userData = await github(accessToken, "/user");
-  await env.USERS.put(userData.id, accessToken);
+  const octokit = new Octokit({ auth: accessToken });
+  const { data: userData } = await octokit.request("GET /user");
+  await env.USERS.put(userData.id.toString(), accessToken);
 
   return new Response("OK");
 };
