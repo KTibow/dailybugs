@@ -35,17 +35,23 @@ Unsubscribe by revoking access at ${REVOKE_URL}.`,
   if (!r.ok) throw new Error(`Resend is ${r.status}ing`);
 };
 export const sendDiscord = async (text: string) => {
-  if (text.length > 2000) {
-    text = text.slice(0, 1990) + "...";
+  const postToDiscord = async (content: string) => {
+    const r = await fetch(env.DISCORD_WEBHOOK, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    if (!r.ok) throw new Error(`Discord is ${r.status}ing`);
+  };
+
+  let chunk = "";
+  for (const line of text.split("\n")) {
+    if ((chunk + "\n" + line).length > 2000) {
+      await postToDiscord(chunk);
+      chunk = line;
+    } else {
+      chunk = chunk ? chunk + "\n" + line : line;
+    }
   }
-  const r = await fetch(env.DISCORD_WEBHOOK, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      content: text,
-    }),
-  });
-  if (!r.ok) throw new Error(`Discord is ${r.status}ing`);
+  if (chunk) await postToDiscord(chunk);
 };

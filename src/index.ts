@@ -67,7 +67,21 @@ const root = async (request: RequestExt): Promise<Response> => {
     }
     throw new Response("Method not allowed", { status: 405 });
   }
-  if (request.urlData.pathname == "/demo") {
+  if (request.urlData.pathname == "/test") {
+    if (request.method == "POST") {
+      const { sub } = await getAuth(request.cookieStore);
+      await env.WORKFLOW.create({
+        params: {
+          uid: sub,
+          testRun: false,
+        },
+      });
+      await request.cookieStore.set({ name: "flash-run-started", value: "yes", httpOnly: true });
+      return redirect("/");
+    }
+    throw new Response("Method not allowed", { status: 405 });
+  }
+  if (request.urlData.pathname == "/debug") {
     if (request.method == "POST") {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
@@ -76,7 +90,7 @@ const root = async (request: RequestExt): Promise<Response> => {
           testRun: true,
         },
       });
-      await request.cookieStore.set({ name: "flash-run-started", value: "yes", httpOnly: true });
+      await request.cookieStore.set({ name: "flash-debug-started", value: "yes", httpOnly: true });
       return redirect("/");
     }
     throw new Response("Method not allowed", { status: 405 });
@@ -106,8 +120,12 @@ const root = async (request: RequestExt): Promise<Response> => {
     let html = await r.text();
     if (await request.cookieStore.get("flash-run-started")) {
       await request.cookieStore.delete("flash-run-started");
-      html = html.replace(/<h1>.+?<\/h1>/, "<h1>Test run started.</h1>");
-      html = html.replace("Try a test run", "Try another test run");
+      html = html.replace(/<h1>.+?<\/h1>/, "<h1>Run started - be patient.</h1>");
+    }
+    if (await request.cookieStore.get("flash-debug-started")) {
+      await request.cookieStore.delete("flash-debug-started");
+      html = html.replace(/<h1>.+?<\/h1>/, "<h1>Debug run started.</h1>");
+      html = html.replace("Run in debug mode", "Run again in debug mode");
     }
     html = html.replace("[username]", userData.login);
     html = html.replace(/<!-- via (.+) -->[^]+?<!-- end via \1 -->/g, (text, thisMethod) =>

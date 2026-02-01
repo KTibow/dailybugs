@@ -10,15 +10,18 @@
       main {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 0.5rem;
         width: min(calc(100% - 3rem), 50rem);
         align-self: center;
         align-items: center;
         text-align: center;
         margin-block: auto;
       }
-      h1 {
+      main > h1 {
         font-size: 2rem;
+      }
+      main > div {
+        margin-bottom: 1rem;
       }
       form {
         display: contents;
@@ -61,8 +64,11 @@
         </form>
       </div>
       <!-- end via discord -->
-      <form method="post" action="/demo">
-        <button class="button">Try a test run</button>
+      <form method="post" action="/test">
+        <button class="button">Run on yesterday's commits</button>
+      </form>
+      <form method="post" action="/debug">
+        <button class="button">Run in debug mode</button>
       </form>
     </main>
     <dialog id="set-up-discord" closedby="any">

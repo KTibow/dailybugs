@@ -1,4 +1,4 @@
-import { WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from "cloudflare:workers";
+import { env, WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { Octokit } from "@octokit/rest";
 import { Endpoints } from "@octokit/types";
 import { getDelivery, sendDiscord, sendEmail } from "./delivery";
@@ -145,7 +145,76 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
 Created ${batches.length} batches, made of ${diffs.length} diffs from ${commitEvents.length} commits across ${Object.keys(aggregatedCommits).length} repos.`;
     } else {
       const bugs: BugData[] = [];
-      // TODO iter through batches
+      let batchNumber = 0;
+      for (const batch of batches) {
+        console.debug(`processing batch ${batchNumber}...`);
+        const batchBugs = await step.do(`process batch ${batchNumber}`, async () => {
+          const prompt = `You are the Daily Bugs agent. You are reviewing yesterday's changes:
+
+${batch
+  .map(
+    ({
+      repo,
+      ref,
+      old,
+      new: neww,
+      diff,
+    }) => `# ${repo} (${ref}) (old: ${old.slice(0, 6)}, new: ${neww.slice(0, 6)})
+<diff>
+${diff}
+</diff>`,
+  )
+  .join("\n\n")}
+
+Task:
+Identify HIGH-CONFIDENCE bugs introduced by these diffs.
+
+Calibration:
+- It is NORMAL for a diff to have zero bugs.
+- It is NORMAL for the entire batch to have zero bugs; many days should output [].
+- False positives are worse than false negatives. If unsure, do not report it. If your confidence is below ~80%, skip it.
+- Only report an issue if it is directly supported by the diff (no speculation about unseen context).
+- Ignore intentional changes, refactors, stylistic changes, modern language features, or anything requiring extra context to judge.
+
+Context:
+- Today is ${new Date().toLocaleDateString()}.
+- You can assume that the CSS Functions and Mixins module is active, which allows for syntax like @function --echo(--val) { result: var(--val) }, @mixin --red { color: red }, and @apply --red.
+
+Output:
+Return JSON using schema:
+{repo: string; old: string; new: string; path: string; description: string}[].
+- "old" and "new" must be SHAs diffable with each other.
+- "description" must be no more than a sentence or two.
+- If you find no high-confidence bugs, output [] and nothing else.`;
+          const r = await fetch("https://ai.hackclub.com/proxy/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${env.HCAI_KEY}`,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [{ role: "user", content: prompt }],
+              reasoning: { enabled: true },
+            }),
+          });
+          if (!r.ok) throw new Error(`HCAI is ${r.status}ing: ${await r.text()}`);
+
+          const {
+            choices: [{ message }],
+          } = await r.json<any>();
+          console.debug(message);
+          const json = message.content.slice(
+            message.content.indexOf("["),
+            message.content.lastIndexOf("]") + 1,
+          );
+          return JSON.parse(json);
+        });
+        bugs.push(...batchBugs);
+        batchNumber++;
+      }
+      console.debug("done processing batches...");
+
       title = "Your daily bugs";
       message = bugs
         .map((b) => {
