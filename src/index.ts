@@ -76,7 +76,8 @@ const root = async (request: RequestExt): Promise<Response> => {
           testRun: true,
         },
       });
-      return redirect("/demo-result");
+      await request.cookieStore.set({ name: "flash-run-started", value: "yes", httpOnly: true });
+      return redirect("/");
     }
     throw new Response("Method not allowed", { status: 405 });
   }
@@ -103,6 +104,11 @@ const root = async (request: RequestExt): Promise<Response> => {
 
     const r = await env.ASSETS.fetch(new URL("/index-loggedin.html", request.url));
     let html = await r.text();
+    if (await request.cookieStore.get("flash-run-started")) {
+      await request.cookieStore.delete("flash-run-started");
+      html = html.replace(/<h1>.+?<\/h1>/, "<h1>Test run started.</h1>");
+      html = html.replace("Try a test run", "Try another test run");
+    }
     html = html.replace("[username]", userData.login);
     html = html.replace(/<!-- via (.+) -->[^]+?<!-- end via \1 -->/g, (text, thisMethod) =>
       thisMethod == method ? text : "",

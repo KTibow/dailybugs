@@ -11,6 +11,31 @@ type CommitEvent = CommitEventBase & {
   payload: { ref: string; head: string; before: string };
   created_at: string;
 };
+type DiffData = { repo: string; ref: string; old: string; new: string; diff: string };
+type BugData = { repo: string; path: string; old: string; new: string; description: string };
+const collapseLockFiles = (diff: string) =>
+  diff.replace(
+    /(?<=\n|^)diff --git a\/((?:[a-z-]+\/)*(?:pnpm-lock.yaml|package-lock.json|yarn.lock|uv.lock)) b\/\1\nindex .+\n--- .+\n\+\+\+ .+\n[^]+?(?=\ndiff --git|$)/g,
+    "[Collapsed diff for $1]",
+  );
+const batchDiffs = (diffs: DiffData[], softLimit: number) => {
+  const batches: DiffData[][] = [];
+  for (const diff of diffs) {
+    const lastBatch = batches.at(-1);
+    if (!lastBatch) {
+      batches.push([diff]);
+      continue;
+    }
+    const currentWeight = lastBatch.reduce((acc, { diff }) => acc + diff.length, 0);
+    const newWeight = currentWeight + diff.diff.length;
+    if (newWeight > softLimit) {
+      batches.push([diff]);
+      continue;
+    }
+    lastBatch.push(diff);
+  }
+  return batches;
+};
 export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
   async run({ timestamp, payload }: WorkflowEvent<Params>, step: WorkflowStep) {
     const mustSucceed = async <T>(fn: () => Promise<T>) => {
@@ -63,6 +88,53 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
         },
       ),
     );
+    const aggregatedCommits: Record<string, Record<string, { old: string; new: string }>> = {};
+    for (const commit of commitEvents) {
+      const repo = (aggregatedCommits[commit.repo.name] ??= {});
+      if (repo[commit.payload.ref]) {
+        repo[commit.payload.ref].old = commit.payload.before;
+      } else {
+        repo[commit.payload.ref] = { new: commit.payload.head, old: commit.payload.before };
+      }
+    }
+
+    const diffs: DiffData[] = [];
+    const warnings: string[] = [];
+    for (const repo in aggregatedCommits) {
+      for (const ref in aggregatedCommits[repo]) {
+        const { old, new: neww } = aggregatedCommits[repo][ref];
+        const diff = await step.do(`load diff for ${ref} from ${repo}`, async () => {
+          const { data } = await octokit.request(
+            "GET /repos/{owner}/{repo}/compare/{base}...{head}",
+            {
+              owner: repo.split("/")[0],
+              repo: repo.split("/")[1],
+              base: old,
+              head: neww,
+              mediaType: {
+                format: "diff",
+              },
+            },
+          );
+          return collapseLockFiles(data as unknown as string);
+        });
+        if (diff.length > 100000 * 4) {
+          warnings.push(`Changes on ${ref} from ${repo} were ignored`);
+          continue;
+        }
+        diffs.push({ repo, ref, old, new: neww, diff });
+      }
+    }
+    diffs.sort((a, b) => a.diff.length - b.diff.length);
+
+    let batches = batchDiffs(diffs, 8192 * 4);
+    if (batches.length > 8) {
+      const discardedBatches = batches.length - 8;
+      warnings.push(
+        `Only 8 batches of diffs could be scanned; ${discardedBatches} ${discardedBatches == 1 ? "batch" : "batches"} were ignored`,
+      );
+      batches = batches.slice(0, 8);
+    }
 
     let title: string;
     let message: string;
@@ -70,10 +142,23 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
       title = "Daily Bugs test run successful";
       message = `Test run successful.
 
-Found ${commitEvents.length} commits.`;
+Created ${batches.length} batches, made of ${diffs.length} diffs from ${commitEvents.length} commits across ${Object.keys(aggregatedCommits).length} repos.`;
     } else {
+      const bugs: BugData[] = [];
+      // TODO iter through batches
       title = "Your daily bugs";
-      message = "TODO";
+      message = bugs
+        .map((b) => {
+          const name = b.repo.split("/")[1];
+          return `- ${name}: ${b.description} ([file](<https://github.com/${b.repo}/blob/${b.new}/${b.path}>), [changes](<https://github.com/${b.repo}/compare/${b.old}...${b.new}>))`;
+        })
+        .join("\n");
+    }
+
+    if (warnings.length) {
+      message = `${message}
+
+${warnings.map((w) => `⚠️ ${w}`).join("\n")}`;
     }
 
     if (!message) return;
