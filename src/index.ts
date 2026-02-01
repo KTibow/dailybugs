@@ -9,6 +9,11 @@ type RequestExt = Request & { urlData: URL; cookieStore: RequestCookieStore };
 
 const redirect = (location: string) =>
   new Response(undefined, { status: 302, headers: { location } });
+const getWorkflowTimestamp = () =>
+  new Date()
+    .toISOString()
+    .slice(0, 22)
+    .replace(/[^0-9a-z]/i, "-");
 
 const callback = async ({ urlData, cookieStore }: RequestExt) => {
   const code = urlData.searchParams.get("code");
@@ -71,7 +76,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (request.method == "POST") {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
-        id: `${sub}--manual-wet-${new Date().toISOString().slice(0, -1)}`,
+        id: `${sub}--manual-wet-${getWorkflowTimestamp()}`,
         params: {
           uid: sub,
           testRun: false,
@@ -86,7 +91,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (request.method == "POST") {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
-        id: `${sub}--manual-dry-${new Date().toISOString().slice(0, -1)}`,
+        id: `${sub}--manual-dry-${getWorkflowTimestamp()}`,
         params: {
           uid: sub,
           testRun: true,
