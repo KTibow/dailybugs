@@ -134,12 +134,12 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (await request.cookieStore.get("flash-run-started")) {
       await request.cookieStore.delete("flash-run-started");
       html = html.replace(/<h1>.+?<\/h1>/, "<h1>Run started - be patient.</h1>");
-      html = html.replace("Run on yesterday's commits", "Run on yesterday again");
+      html = html.replace("Test on yesterday's commits", "Test again");
     }
     if (await request.cookieStore.get("flash-debug-started")) {
       await request.cookieStore.delete("flash-debug-started");
       html = html.replace(/<h1>.+?<\/h1>/, "<h1>Debug run started.</h1>");
-      html = html.replace("Run in debug mode", "Run again in debug mode");
+      html = html.replace("Test in debug mode", "Test again");
     }
     html = html.replace("[username]", userData.login);
     html = html.replace(/<!-- via (.+) -->[^]+?<!-- end via \1 -->/g, (text, thisMethod) =>

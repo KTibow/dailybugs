@@ -31,9 +31,12 @@
         color: var(--m3c-primary);
         cursor: pointer;
       }
-      .button.deemph {
-        background-color: transparent;
-        color: var(--m3c-primary);
+      .deemph {
+        display: flex;
+        align-items: center;
+        height: 2rem;
+        padding-inline: 1rem;
+        border-radius: var(--m3-shape-full);
       }
       dialog {
         &:open {
@@ -56,23 +59,23 @@
       <h1>Hi [username]</h1>
       <!-- via email -->
       <div>
-        Sending bugs via email •
+        Sending bugs every day via email •
         <button commandfor="set-up-discord" command="show-modal">Switch to Discord</button>
       </div>
       <!-- end via email -->
       <!-- via discord -->
       <div>
-        Sending bugs via Discord •
+        Sending bugs every day via Discord •
         <form method="post" action="/changedelivery">
           <input type="hidden" name="method" value="email" /><button>Switch to email</button>
         </form>
       </div>
       <!-- end via discord -->
       <form method="post" action="/test">
-        <button class="button">Run on yesterday's commits</button>
+        <button class="deemph">Test on yesterday's commits</button>
       </form>
       <form method="post" action="/debug">
-        <button class="button deemph">Run in debug mode</button>
+        <button class="deemph">Test in debug mode</button>
       </form>
     </main>
     <dialog id="set-up-discord" closedby="any">
