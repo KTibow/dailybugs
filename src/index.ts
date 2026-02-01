@@ -7,9 +7,8 @@ import { deleteAuth, getAuth, setAuth } from "./jwt";
 
 type RequestExt = Request & { urlData: URL; cookieStore: RequestCookieStore };
 
-const redirectHome = () => {
-  throw new Response(undefined, { status: 302, headers: { location: "/" } });
-};
+const redirect = (location: string) =>
+  new Response(undefined, { status: 302, headers: { location } });
 
 const callback = async ({ urlData, cookieStore }: RequestExt) => {
   const code = urlData.searchParams.get("code");
@@ -38,7 +37,7 @@ const callback = async ({ urlData, cookieStore }: RequestExt) => {
   await setToken(userId, accessToken);
   await setAuth(cookieStore, userId);
 
-  redirectHome();
+  return redirect("/");
 };
 
 const changeDelivery = async (request: RequestExt) => {
@@ -52,19 +51,32 @@ const changeDelivery = async (request: RequestExt) => {
 
   await setDelivery(sub, data ? `${method}:${data}` : method);
 
-  redirectHome();
+  return redirect("/");
 };
 
 const root = async (request: RequestExt): Promise<Response> => {
   if (request.urlData.pathname == "/callback") {
     if (request.method == "GET") {
-      await callback(request);
+      return await callback(request);
     }
     throw new Response("Method not allowed", { status: 405 });
   }
   if (request.urlData.pathname == "/changedelivery") {
     if (request.method == "POST") {
-      await changeDelivery(request);
+      return await changeDelivery(request);
+    }
+    throw new Response("Method not allowed", { status: 405 });
+  }
+  if (request.urlData.pathname == "/demo") {
+    if (request.method == "POST") {
+      const { sub } = await getAuth(request.cookieStore);
+      await env.WORKFLOW.create({
+        params: {
+          uid: sub,
+          testRun: true,
+        },
+      });
+      return redirect("/demo-result");
     }
     throw new Response("Method not allowed", { status: 405 });
   }
@@ -84,7 +96,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     } catch {
       await deleteToken(sub);
       await deleteAuth(request.cookieStore);
-      return await env.ASSETS.fetch(new URL("/index-revoked.html", request.url));
+      return redirect("/revoked");
     }
 
     const method = (await getDelivery(sub)).split(":")[0];
@@ -125,3 +137,4 @@ export default {
     });
   },
 } satisfies ExportedHandler<Env>;
+export { BugWorkflow } from "./workflow";

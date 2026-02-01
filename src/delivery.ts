@@ -21,7 +21,7 @@ export const sendEmail = async (targetEmail: string, subject: string, text: stri
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      from: "bugs@dailybugs.kendell.dev",
+      from: "Daily Bugs <bugs@dailybugs.kendell.dev>",
       to: targetEmail,
       subject,
       text: `${text}
@@ -35,10 +35,17 @@ Unsubscribe by revoking access at ${REVOKE_URL}.`,
   if (!r.ok) throw new Error(`Resend is ${r.status}ing`);
 };
 export const sendDiscord = async (text: string) => {
+  if (text.length > 2000) {
+    text = text.slice(0, 1990) + "...";
+  }
   const r = await fetch(env.DISCORD_WEBHOOK, {
     method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
     body: JSON.stringify({
       content: text,
     }),
   });
+  if (!r.ok) throw new Error(`Discord is ${r.status}ing`);
 };

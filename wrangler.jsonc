@@ -39,6 +39,13 @@
       "id": "14d0806265f64ebbacd8abcf4f4365b9",
     },
   ],
+  "workflows": [
+    {
+      "name": "bug-workflow",
+      "class_name": "BugWorkflow",
+      "binding": "WORKFLOW",
+    },
+  ],
   /**
    * Service Bindings (communicate between multiple Workers)
    * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
