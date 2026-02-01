@@ -76,7 +76,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (request.method == "POST") {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
-        id: `${sub}--manual-wet-${getWorkflowTimestamp()}`,
+        id: `user-${sub}--manual-wet-${getWorkflowTimestamp()}`,
         params: {
           uid: sub,
           testRun: false,
@@ -91,7 +91,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (request.method == "POST") {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
-        id: `${sub}--manual-dry-${getWorkflowTimestamp()}`,
+        id: `user-${sub}--manual-dry-${getWorkflowTimestamp()}`,
         params: {
           uid: sub,
           testRun: true,
