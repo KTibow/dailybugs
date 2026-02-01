@@ -8,7 +8,7 @@ PRs are great when you're working together with skilled contributors and reviewe
 
 ## Automatic
 
-You should be able to forget about your linter. You shouldn't have to copy/paste your diff or make a PR or open a special panel or configure repos or think about whether your favorite language is supported.
+You should be able to forget about your linter. You shouldn't have to copy/paste your diff or make a PR or open a special panel. You also shouldn't have to think about whether your favorite language is supported or whether your repo is configured or how to convince LLMs of fact.
 
 Daily Bugs does a really good job at this. It just emails you or pings you every day if it sees any bugs.
 

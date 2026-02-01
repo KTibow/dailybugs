@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { Octokit } from "@octokit/rest";
 import { RequestCookieStore } from "@worker-tools/request-cookie-store";
 import { getDelivery, setDelivery } from "./delivery";
-import { deleteToken, getToken, setToken } from "./ghtoken";
+import { deleteToken, getToken, listUIDs, setToken } from "./ghtoken";
 import { deleteAuth, getAuth, setAuth } from "./jwt";
 
 type RequestExt = Request & { urlData: URL; cookieStore: RequestCookieStore };
@@ -166,6 +166,17 @@ export default {
       status: response.status,
       headers: [...response.headers, ...request.cookieStore.headers],
     });
+  },
+  async scheduled() {
+    for (const uid of await listUIDs()) {
+      await env.WORKFLOW.create({
+        id: `user-${uid}--auto-${getWorkflowTimestamp()}`,
+        params: {
+          uid,
+          testRun: true,
+        },
+      });
+    }
   },
 } satisfies ExportedHandler<Env>;
 export { BugWorkflow } from "./workflow";
