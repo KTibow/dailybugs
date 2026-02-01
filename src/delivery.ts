@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { parse } from "marked";
 
 const REVOKE_URL = `https://github.com/settings/connections/applications/${env.GITHUB_CLIENT_ID}`;
 
@@ -13,7 +14,10 @@ export const setDelivery = async (uid: string, method: string) => {
     await env.KV.put(`delivery:${uid}`, method);
   }
 };
-export const sendEmail = async (targetEmail: string, subject: string, text: string) => {
+export const sendEmail = async (targetEmail: string, subject: string, markdown: string) => {
+  const html = parse(`${markdown}
+
+Unsubscribe by revoking access at ${REVOKE_URL}.`) as string;
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -24,9 +28,7 @@ export const sendEmail = async (targetEmail: string, subject: string, text: stri
       from: "Daily Bugs <bugs@dailybugs.kendell.dev>",
       to: targetEmail,
       subject,
-      text: `${text}
-
-Unsubscribe by revoking access at ${REVOKE_URL}.`,
+      html,
       headers: {
         "list-unsubscribe": `<${REVOKE_URL}>`,
       },
@@ -34,7 +36,7 @@ Unsubscribe by revoking access at ${REVOKE_URL}.`,
   });
   if (!r.ok) throw new Error(`Resend is ${r.status}ing`);
 };
-export const sendDiscord = async (text: string) => {
+export const sendDiscord = async (markdown: string) => {
   const postToDiscord = async (content: string) => {
     const r = await fetch(env.DISCORD_WEBHOOK, {
       method: "POST",
@@ -45,7 +47,7 @@ export const sendDiscord = async (text: string) => {
   };
 
   let chunk = "";
-  for (const line of text.split("\n")) {
+  for (const line of markdown.split("\n")) {
     if ((chunk + "\n" + line).length > 2000) {
       await postToDiscord(chunk);
       chunk = line;

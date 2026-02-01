@@ -13,6 +13,7 @@
     "@octokit/types": "^16.0.0",
     "@tsndr/cloudflare-worker-jwt": "^3.2.1",
     "@worker-tools/request-cookie-store": "0.6.0-pre.3",
+    "marked": "^17.0.1",
     "prettier": "^3.8.1",
     "typescript": "^5.5.2",
     "wrangler": "^4.61.1"
