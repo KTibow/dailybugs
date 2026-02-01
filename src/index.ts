@@ -13,7 +13,7 @@ const getWorkflowTimestamp = () =>
   new Date()
     .toISOString()
     .slice(0, 22)
-    .replace(/[^0-9a-z]/i, "-");
+    .replace(/[^0-9a-z]/gi, "-");
 
 const callback = async ({ urlData, cookieStore }: RequestExt) => {
   const code = urlData.searchParams.get("code");
