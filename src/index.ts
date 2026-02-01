@@ -180,7 +180,7 @@ export default {
         id: `user-${uid}--auto-${getWorkflowTimestamp()}`,
         params: {
           uid,
-          testRun: true,
+          testRun: false,
         },
       });
     }

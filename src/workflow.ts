@@ -171,6 +171,10 @@ Identify HIGH-CONFIDENCE bugs introduced by these diffs.
 What is a bug:
 A bug is a provable mechanical or logical breakdown visible within the diff. It means the code will not work as intended in the main execution flow. This is not a suggestion for improvement—it's a statement that the code is broken.
 
+Calibration:
+- Most diffs contain zero bugs. Expect many batches to return [].
+- Confidence threshold: 90%+. If you'd use words like "might", "could", or "if", don't report it. Don't sandwich something you're confident in with something you may be hallucinating.
+
 Report these:
 - Logic errors: inverted conditions, wrong operators, off-by-one errors, infinite loops
 - Async flow failures: missing await when the value (not the Promise) is needed, awaiting non-promises
@@ -200,10 +204,6 @@ Examples:
 ✗ Skip: "sendDiscord will fail if a line exceeds 2000 chars because the chunking logic doesn't handle it."
   Why: Edge case requiring external API knowledge not evident in the diff.
 
-Calibration:
-- Most diffs contain zero bugs. Expect many batches to return [].
-- Confidence threshold: 90%+. If you'd use words like "might", "could", or "if", don't report it.
-
 Context:
 - Today is ${new Date().toLocaleDateString()}.
 - CSS Functions and Mixins module is active (@function, @mixin, @apply syntax).
@@ -212,7 +212,7 @@ Output:
 Return JSON using schema:
 {repo: string; old: string; new: string; path: string; description: string}[].
 - "old" and "new" must be SHAs diffable with each other.
-- "description" must be 1-2 sentences, objective, present tense, and concise.
+- "description" must be 1-2 sentences, present tense, objective, and concise. It may use Markdown-style italics.
 - If you find no high-confidence bugs, output [] and nothing else.`;
           const r = await fetch("https://ai.hackclub.com/proxy/v1/chat/completions", {
             method: "POST",
