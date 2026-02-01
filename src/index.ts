@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { Octokit } from "@octokit/rest";
 import { RequestCookieStore } from "@worker-tools/request-cookie-store";
-import { setDelivery } from "./delivery";
+import { getDelivery, setDelivery } from "./delivery";
 import { deleteToken, getToken, setToken } from "./ghtoken";
 import { deleteAuth, getAuth, setAuth } from "./jwt";
 
@@ -41,10 +41,10 @@ const callback = async ({ urlData, cookieStore }: RequestExt) => {
   redirectHome();
 };
 
-const changeDelivery = async ({ urlData, formData, cookieStore }: RequestExt) => {
-  const { sub } = await getAuth(cookieStore);
+const changeDelivery = async (request: RequestExt) => {
+  const { sub } = await getAuth(request.cookieStore);
 
-  const form = await formData();
+  const form = await request.formData();
   const method = form.get("method");
   if (typeof method != "string") throw new Response("Invalid data", { status: 400 });
   const data = form.get("data");
@@ -87,9 +87,15 @@ const root = async (request: RequestExt): Promise<Response> => {
       return await env.ASSETS.fetch(new URL("/index-revoked.html", request.url));
     }
 
+    const method = (await getDelivery(sub)).split(":")[0];
+
     const r = await env.ASSETS.fetch(new URL("/index-loggedin.html", request.url));
-    const html = await r.text();
-    return new Response(html.replace("[username]", userData.login), {
+    let html = await r.text();
+    html = html.replace("[username]", userData.login);
+    html = html.replace(/<!-- via (.+) -->[^]+?<!-- end via \1 -->/g, (text, thisMethod) =>
+      thisMethod == method ? text : "",
+    );
+    return new Response(html, {
       status: r.status,
       headers: r.headers,
     });

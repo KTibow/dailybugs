@@ -15,21 +15,20 @@
       h1 {
         font-size: 2rem;
       }
-      body > a {
-        display: flex;
+      .button {
         height: 2rem;
         padding-inline: 1rem;
-        border-radius: var(--m3-shape-full);
-        align-items: center;
-        align-self: center;
+        font-size: 1rem;
         background-color: var(--m3c-secondary-container);
         color: var(--m3c-on-secondary-container);
+        align-self: center;
       }
     </style>
   </head>
   <body>
     <h1>You've disabled Daily Bugs</h1>
     <a
+      class="button"
       href="https://github.com/login/oauth/authorize?client_id=Ov23liZ42ZbwqopYT7Y6&scope=user:email"
       >Enable Daily Bugs again</a
     >

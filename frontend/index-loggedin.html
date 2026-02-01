@@ -10,20 +10,70 @@
       main {
         display: flex;
         flex-direction: column;
-        text-align: center;
+        gap: 1.5rem;
         width: min(calc(100% - 3rem), 50rem);
         align-self: center;
+        align-items: center;
+        text-align: center;
         margin-block: auto;
       }
       h1 {
         font-size: 2rem;
+      }
+      form {
+        display: contents;
+      }
+      button {
+        background-color: transparent;
+        color: var(--m3c-primary);
+        cursor: pointer;
+      }
+      dialog {
+        &:open {
+          display: flex;
+        }
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+        border-radius: 1.5rem;
+      }
+      input {
+        height: 3rem;
       }
     </style>
   </head>
   <body>
     <main>
       <h1>Hi [username]</h1>
+      <!-- via email -->
+      <div>
+        Sending bugs via email •
+        <button commandfor="set-up-discord" command="show-modal">Switch to Discord</button>
+      </div>
+      <!-- end via email -->
+      <!-- via discord -->
+      <div>
+        Sending bugs via Discord •
+        <form method="post" action="/changedelivery">
+          <input type="hidden" name="method" value="email" /><button>Switch to email</button>
+        </form>
+      </div>
+      <!-- end via discord -->
+      <form method="post" action="/demo">
+        <button class="button">Try a test run</button>
+      </form>
     </main>
+    <dialog id="set-up-discord" closedby="any">
+      <form method="post" action="/changedelivery">
+        <input type="hidden" name="method" value="discord" />
+        <p>
+          ⚠️ You need to be in <a href="https://discord.gg/yhYwdmx8RG">this Discord</a> to see the
+          bugs.
+        </p>
+        <input name="data" placeholder="You must also put your Discord ID here" required />
+        <button class="button">Switch to sending via Discord</button>
+      </form>
+    </dialog>
     <footer>
       Disable Daily Bugs on
       <a href="https://github.com/settings/connections/applications/Ov23liZ42ZbwqopYT7Y6">GitHub</a
