@@ -7,32 +7,27 @@
     <link rel="stylesheet" href="/base.css" />
     <title>Daily Bugs</title>
     <style>
-      body > a {
+      main {
         display: flex;
-        height: 4rem;
-        font-size: 1.5rem;
-        padding-inline: 1.5rem;
-        border-radius: var(--m3-shape-full);
-        align-items: center;
-        background-color: var(--m3c-primary);
-        color: var(--m3c-on-primary);
-        margin: auto;
-      }
-      body > p {
-        color: var(--m3c-on-surface-variant);
+        flex-direction: column;
         text-align: center;
+        width: min(calc(100% - 3rem), 50rem);
+        align-self: center;
+        margin-block: auto;
+      }
+      h1 {
+        font-size: 2rem;
       }
     </style>
   </head>
   <body>
-    <a
-      href="https://github.com/login/oauth/authorize?client_id=Ov23liZ42ZbwqopYT7Y6&scope=user:email"
-      >Enable Daily Bugs</a
-    >
-    <p>
+    <main>
+      <h1>Hi [username]</h1>
+    </main>
+    <footer>
       Disable Daily Bugs on
       <a href="https://github.com/settings/connections/applications/Ov23liZ42ZbwqopYT7Y6">GitHub</a
       >.
-    </p>
+    </footer>
   </body>
 </html>

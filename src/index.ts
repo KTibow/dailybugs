@@ -1,28 +1,14 @@
 import { env } from "cloudflare:workers";
 import { Octokit } from "@octokit/rest";
 import { RequestCookieStore } from "@worker-tools/request-cookie-store";
-import { sign, verify } from "@tsndr/cloudflare-worker-jwt";
 import { setDelivery } from "./delivery";
+import { deleteToken, getToken, setToken } from "./ghtoken";
+import { deleteAuth, getAuth, setAuth } from "./jwt";
 
 type RequestExt = Request & { urlData: URL; cookieStore: RequestCookieStore };
-const loadAuth = async (cookieStore: RequestCookieStore) => {
-  const jwtInfo = await cookieStore.get("jwt");
-  if (!jwtInfo) throw new Response("Unauthorized", { status: 401 });
 
-  const jwtDecoded = await verify(jwtInfo.value, env.JWT_SECRET);
-  if (!jwtDecoded) throw new Response("Unauthorized", { status: 401 });
-
-  const {
-    payload: { sub },
-  } = jwtDecoded;
-  if (!sub) throw new Response("Unauthorized", { status: 401 });
-
-  return { sub };
-};
-const redirectHome = (headersInit?: HeadersInit) => {
-  const headers = new Headers(headersInit);
-  headers.set("location", "/");
-  throw new Response(undefined, { status: 302, headers });
+const redirectHome = () => {
+  throw new Response(undefined, { status: 302, headers: { location: "/" } });
 };
 
 const callback = async ({ urlData, cookieStore }: RequestExt) => {
@@ -42,21 +28,21 @@ const callback = async ({ urlData, cookieStore }: RequestExt) => {
 
   const tokenData = await r.json<any>();
   if (tokenData.error) throw new Response(`GitHub says ${tokenData.error}`, { status: 500 });
-  const accessToken = tokenData.access_token as string;
 
+  const accessToken = tokenData.access_token as string;
   const octokit = new Octokit({ auth: accessToken });
+
   const { data: userData } = await octokit.request("GET /user");
   const userId = userData.id.toString();
 
-  const jwt = await sign({ sub: userId }, env.JWT_SECRET);
-  await cookieStore.set({ name: "jwt", value: jwt, httpOnly: true });
-  await env.KV.put(`ghtoken:${userId}`, accessToken);
+  await setToken(userId, accessToken);
+  await setAuth(cookieStore, userId);
 
-  redirectHome(cookieStore.headers);
+  redirectHome();
 };
 
 const changeDelivery = async ({ urlData, formData, cookieStore }: RequestExt) => {
-  const { sub } = await loadAuth(cookieStore);
+  const { sub } = await getAuth(cookieStore);
 
   const form = await formData();
   const method = form.get("method");
@@ -66,34 +52,70 @@ const changeDelivery = async ({ urlData, formData, cookieStore }: RequestExt) =>
 
   await setDelivery(sub, data ? `${method}:${data}` : method);
 
-  redirectHome(cookieStore.headers);
+  redirectHome();
 };
 
+const root = async (request: RequestExt): Promise<Response> => {
+  if (request.urlData.pathname == "/callback") {
+    if (request.method == "GET") {
+      await callback(request);
+    }
+    throw new Response("Method not allowed", { status: 405 });
+  }
+  if (request.urlData.pathname == "/changedelivery") {
+    if (request.method == "POST") {
+      await changeDelivery(request);
+    }
+    throw new Response("Method not allowed", { status: 405 });
+  }
+  if (request.urlData.pathname == "/") {
+    let sub: string;
+    try {
+      ({ sub } = await getAuth(request.cookieStore));
+    } catch {
+      return await env.ASSETS.fetch(new URL("/index-loggedout.html", request.url));
+    }
+
+    let userData: { login: string };
+    try {
+      const token = await getToken(sub);
+      const octokit = new Octokit({ auth: token });
+      ({ data: userData } = await octokit.request("GET /user"));
+    } catch {
+      await deleteToken(sub);
+      await deleteAuth(request.cookieStore);
+      return await env.ASSETS.fetch(new URL("/index-revoked.html", request.url));
+    }
+
+    const r = await env.ASSETS.fetch(new URL("/index-loggedin.html", request.url));
+    const html = await r.text();
+    return new Response(html.replace("[username]", userData.login), {
+      status: r.status,
+      headers: r.headers,
+    });
+  }
+  throw new Response("Page not found", { status: 404 });
+};
+const rootWithCatch = async (request: RequestExt): Promise<Response> => {
+  try {
+    return await root(request);
+  } catch (e) {
+    if (e instanceof Response) {
+      return e;
+    }
+    throw e;
+  }
+};
 export default {
   async fetch(_request) {
     const request = Object.assign(_request, {
       urlData: new URL(_request.url),
       cookieStore: new RequestCookieStore(_request),
     });
-    try {
-      if (request.urlData.pathname == "/callback") {
-        if (request.method == "GET") {
-          await callback(request);
-        }
-        throw new Response("Method not allowed", { status: 405 });
-      }
-      if (request.urlData.pathname == "/changedelivery") {
-        if (request.method == "POST") {
-          await changeDelivery(request);
-        }
-        throw new Response("Method not allowed", { status: 405 });
-      }
-      throw new Response("Page not found", { status: 404 });
-    } catch (e) {
-      if (e instanceof Response) {
-        return e;
-      }
-      throw e;
-    }
+    const response = await rootWithCatch(request);
+    return new Response(response.body, {
+      status: response.status,
+      headers: [...response.headers, ...request.cookieStore.headers],
+    });
   },
 } satisfies ExportedHandler<Env>;

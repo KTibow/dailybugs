@@ -59,3 +59,10 @@ body {
 a {
   text-decoration: inherit;
 }
+footer {
+  color: var(--m3c-on-surface-variant);
+  text-align: center;
+}
+footer a {
+  color: var(--m3c-primary);
+}
