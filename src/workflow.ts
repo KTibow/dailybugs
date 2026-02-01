@@ -150,7 +150,6 @@ Created ${batches.length} batches, made of ${diffs.length} diffs from ${commitEv
         console.debug(`processing batch ${batchNumber}...`);
         const batchBugs = await step.do(`process batch ${batchNumber}`, async () => {
           const prompt = `You are the Daily Bugs agent. You are reviewing yesterday's changes:
-
 ${batch
   .map(
     ({
@@ -169,22 +168,51 @@ ${diff}
 Task:
 Identify HIGH-CONFIDENCE bugs introduced by these diffs.
 
+What is a bug:
+A bug is a provable mechanical or logical breakdown visible within the diff. It means the code will not work as intended in the main execution flow. This is not a suggestion for improvement—it's a statement that the code is broken.
+
+Report these:
+- Logic errors: inverted conditions, wrong operators, off-by-one errors, infinite loops
+- Async flow failures: missing await when the value (not the Promise) is needed, awaiting non-promises
+- Type mismatches: treating a Promise as a boolean, accessing properties on values that will be null/undefined in normal flow
+- Reference errors: typos in variable names, accessing undefined properties
+- Control flow bugs: unreachable returns, incorrect branching
+
+What is NOT a bug:
+Do not report code that is technically "unsafe" but functional under expected conditions.
+
+Developer intent: If the author uses non-null assertions (!), type assertions (as Type), or explicit casts, assume they have knowledge of the environment that you do not. Do not report potential TypeErrors from these assertions.
+
+External constraints: Do not report issues relying on invisible external limits (API rate limits, string length limits, missing DOM elements) unless the code explicitly tries to handle them and fails.
+
+Missing safeguards: Do not report "missing error handling" or "missing validation" unless the input is guaranteed to crash the immediate logic (e.g., division by zero in the diff's visible path).
+
+Style and refactors: Ignore code style, architecture changes, or intentional API breaking changes.
+
+Examples:
+
+✓ Report: "getToken fails to await KV.get, so the token check operates on a Promise (always truthy) rather than the actual value, breaking the error handling."
+  Why: Objective mechanical failure in the async flow.
+
+✗ Skip: "setInterval uses non-null assertions on document.querySelector; if elements are missing, this will crash."
+  Why: Developer used ! explicitly. Assume they know the markup exists.
+
+✗ Skip: "sendDiscord will fail if a line exceeds 2000 chars because the chunking logic doesn't handle it."
+  Why: Edge case requiring external API knowledge not evident in the diff.
+
 Calibration:
-- It is NORMAL for a diff to have zero bugs.
-- It is NORMAL for the entire batch to have zero bugs; many days should output [].
-- False positives are worse than false negatives. If unsure, do not report it. If your confidence is below ~80%, skip it.
-- Only report an issue if it is directly supported by the diff (no speculation about unseen context).
-- Ignore intentional changes, refactors, stylistic changes, modern language features, or anything requiring extra context to judge.
+- Most diffs contain zero bugs. Expect many batches to return [].
+- Confidence threshold: 90%+. If you'd use words like "might", "could", or "if", don't report it.
 
 Context:
 - Today is ${new Date().toLocaleDateString()}.
-- You can assume that the CSS Functions and Mixins module is active, which allows for syntax like @function --echo(--val) { result: var(--val) }, @mixin --red { color: red }, and @apply --red.
+- CSS Functions and Mixins module is active (@function, @mixin, @apply syntax).
 
 Output:
 Return JSON using schema:
 {repo: string; old: string; new: string; path: string; description: string}[].
 - "old" and "new" must be SHAs diffable with each other.
-- "description" must be no more than a sentence or two.
+- "description" must be 1-2 sentences, objective, present tense, and concise.
 - If you find no high-confidence bugs, output [] and nothing else.`;
           const r = await fetch("https://ai.hackclub.com/proxy/v1/chat/completions", {
             method: "POST",
