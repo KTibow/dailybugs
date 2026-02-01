@@ -118,7 +118,13 @@ const root = async (request: RequestExt): Promise<Response> => {
     } catch {
       await deleteToken(sub);
       await deleteAuth(request.cookieStore);
-      return redirect("/revoked");
+      const r = await env.ASSETS.fetch(new URL("/index-loggedout.html", request.url));
+      let html = await r.text();
+      html = html.replace("Enable Daily Bugs", "Reenable Daily Bugs");
+      return new Response(html, {
+        status: r.status,
+        headers: r.headers,
+      });
     }
 
     const method = (await getDelivery(sub)).split(":")[0];
@@ -128,6 +134,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (await request.cookieStore.get("flash-run-started")) {
       await request.cookieStore.delete("flash-run-started");
       html = html.replace(/<h1>.+?<\/h1>/, "<h1>Run started - be patient.</h1>");
+      html = html.replace("Run on yesterday's commits", "Run on yesterday again");
     }
     if (await request.cookieStore.get("flash-debug-started")) {
       await request.cookieStore.delete("flash-debug-started");
