@@ -71,6 +71,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (request.method == "POST") {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
+        id: `${sub}--manual-wet-${new Date().toISOString().slice(0, -1)}`,
         params: {
           uid: sub,
           testRun: false,
@@ -85,6 +86,7 @@ const root = async (request: RequestExt): Promise<Response> => {
     if (request.method == "POST") {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
+        id: `${sub}--manual-dry-${new Date().toISOString().slice(0, -1)}`,
         params: {
           uid: sub,
           testRun: true,
