@@ -1,3 +1,0 @@
-- readme
-- update design?
-- actually run daily

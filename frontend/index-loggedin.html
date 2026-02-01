@@ -31,6 +31,10 @@
         color: var(--m3c-primary);
         cursor: pointer;
       }
+      .button.deemph {
+        background-color: transparent;
+        color: var(--m3c-primary);
+      }
       dialog {
         &:open {
           display: flex;
@@ -68,7 +72,7 @@
         <button class="button">Run on yesterday's commits</button>
       </form>
       <form method="post" action="/debug">
-        <button class="button">Run in debug mode</button>
+        <button class="button deemph">Run in debug mode</button>
       </form>
     </main>
     <dialog id="set-up-discord" closedby="any">
