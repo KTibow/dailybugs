@@ -207,6 +207,7 @@ Examples:
 Context:
 - Today is ${new Date().toLocaleDateString()}.
 - CSS Functions and Mixins module is active (@function, @mixin, @apply syntax).
+- import { env } from "cloudflare:workers" syntax may be active.
 
 Output:
 Return JSON using schema:
