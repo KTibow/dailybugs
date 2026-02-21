@@ -79,7 +79,7 @@ const root = async (request: RequestExt): Promise<Response> => {
         id: `user-${sub}--manual-wet-${getWorkflowTimestamp()}`,
         params: {
           uid: sub,
-          testRun: false,
+          type: 'manual-wet',
         },
       });
       await request.cookieStore.set({ name: 'flash-run-started', value: 'yes', httpOnly: true });
@@ -94,7 +94,7 @@ const root = async (request: RequestExt): Promise<Response> => {
         id: `user-${sub}--manual-dry-${getWorkflowTimestamp()}`,
         params: {
           uid: sub,
-          testRun: true,
+          type: 'manual-dry',
         },
       });
       await request.cookieStore.set({ name: 'flash-debug-started', value: 'yes', httpOnly: true });
@@ -180,7 +180,7 @@ export default {
         id: `user-${uid}--auto-${getWorkflowTimestamp()}`,
         params: {
           uid,
-          testRun: false,
+          type: 'auto',
         },
       });
     }

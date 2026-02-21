@@ -4,7 +4,7 @@ import { Endpoints } from '@octokit/types';
 import { getDelivery, sendDiscord, sendEmail } from './delivery';
 import { deleteToken, getToken } from './ghtoken';
 
-type Params = { uid: string; testRun: boolean };
+type Params = { uid: string; type: 'manual-wet' | 'manual-dry' | 'auto' };
 type CommitEventBase = Endpoints['GET /users/{username}/events/public']['response']['data'][0];
 type CommitEvent = CommitEventBase & {
   repo: { name: string };
@@ -142,7 +142,7 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
 
     let title: string;
     let message: string;
-    if (payload.testRun) {
+    if (payload.type == 'manual-dry') {
       title = 'Daily Bugs test run successful';
       message = `Test run successful.
 
@@ -255,6 +255,10 @@ Return JSON using schema:
           return `- ${name}: ${b.description} ([file](<https://github.com/${b.repo}/blob/${b.new}/${b.path}>), [changes](<https://github.com/${b.repo}/compare/${b.old}...${b.new}>))`;
         })
         .join('\n');
+      if (payload.type == 'manual-wet') {
+        message ||=
+          "In this manual run, no bugs were found. For future automatic runs we'll only email you when we find bugs.";
+      }
     }
 
     if (warnings.length) {
