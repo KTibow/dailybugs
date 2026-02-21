@@ -40,6 +40,18 @@
         background-color: var(--m3c-secondary-container);
         color: var(--m3c-on-secondary-container);
       }
+      .flash {
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        max-width: 25rem;
+
+        padding: 0.75rem;
+        gap: 0.75rem;
+        border-radius: 1rem;
+        background-color: var(--m3c-primary-container);
+        color: var(--m3c-on-primary-container);
+      }
       dialog {
         &:open {
           display: flex;
@@ -73,6 +85,23 @@
         </form>
       </div>
       <!-- end via discord -->
+      <!-- via run-started -->
+      <div class="flash">
+        <h2>Manual run started</h2>
+        <p>
+          Wait a bit for it to finish. <em>If</em> you have any recent commits with any detected
+          bugs, they'll be sent to your email (or, if you selected it, Discord).
+        </p>
+      </div>
+      <!-- end via run-started -->
+      <!-- via debug-started -->
+      <div class="flash">
+        <h2><strong>Debug run started</strong></h2>
+        <p>
+          In a moment you'll see a debug message in your email (or, if you selected it, Discord).
+        </p>
+      </div>
+      <!-- end via debug-started -->
       <form method="post" action="/test">
         <button class="deemph">Test on yesterday's commits</button>
       </form>

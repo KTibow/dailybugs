@@ -66,6 +66,12 @@ a {
   text-decoration: inherit;
   color: var(--m3c-primary);
 }
+strong {
+  font-weight: bold;
+}
+em {
+  font-style: italic;
+}
 footer {
   color: var(--m3c-on-surface-variant);
   text-align: center;
