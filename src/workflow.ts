@@ -1,11 +1,11 @@
-import { env, WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from "cloudflare:workers";
-import { Octokit } from "@octokit/rest";
-import { Endpoints } from "@octokit/types";
-import { getDelivery, sendDiscord, sendEmail } from "./delivery";
-import { deleteToken, getToken } from "./ghtoken";
+import { env, WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
+import { Octokit } from '@octokit/rest';
+import { Endpoints } from '@octokit/types';
+import { getDelivery, sendDiscord, sendEmail } from './delivery';
+import { deleteToken, getToken } from './ghtoken';
 
 type Params = { uid: string; testRun: boolean };
-type CommitEventBase = Endpoints["GET /users/{username}/events/public"]["response"]["data"][0];
+type CommitEventBase = Endpoints['GET /users/{username}/events/public']['response']['data'][0];
 type CommitEvent = CommitEventBase & {
   repo: { name: string };
   payload: { ref: string; head: string; before: string };
@@ -16,7 +16,7 @@ type BugData = { repo: string; path: string; old: string; new: string; descripti
 const collapseLockFiles = (diff: string) =>
   diff.replace(
     /(?<=\n|^)diff --git a\/((?:[a-z-]+\/)*(?:pnpm-lock.yaml|package-lock.json|yarn.lock|uv.lock)) b\/\1\nindex .+\n--- .+\n\+\+\+ .+\n[^]+?(?=\ndiff --git|$)/g,
-    "[Collapsed diff for $1]",
+    '[Collapsed diff for $1]',
   );
 const batchDiffs = (diffs: DiffData[], softLimit: number) => {
   const batches: DiffData[][] = [];
@@ -42,24 +42,24 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
       try {
         return await fn();
       } catch (e) {
-        await step.do("delete token", () => deleteToken(payload.uid));
+        await step.do('delete token', () => deleteToken(payload.uid));
         throw e;
       }
     };
     const { octokit, userData, email, method, data } = await mustSucceed(async () => {
-      const deliveryStep = step.do("get delivery", async () => {
+      const deliveryStep = step.do('get delivery', async () => {
         const delivery = await getDelivery(payload.uid);
-        return delivery.split(":");
+        return delivery.split(':');
       });
 
-      const token = await step.do("load token", () => getToken(payload.uid));
+      const token = await step.do('load token', () => getToken(payload.uid));
       const octokit = new Octokit({ auth: token });
-      const userData = await step.do("load user data", async () => {
-        const { data } = await octokit.request("GET /user");
+      const userData = await step.do('load user data', async () => {
+        const { data } = await octokit.request('GET /user');
         return data;
       });
-      const email = await step.do("load user email", async () => {
-        const { data } = await octokit.request("GET /user/emails");
+      const email = await step.do('load user email', async () => {
+        const { data } = await octokit.request('GET /user/emails');
         return data.find((email) => email.verified && email.primary)?.email;
       });
 
@@ -70,13 +70,13 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
     const username = userData.login;
 
     const cutoff = new Date(timestamp.getTime() - 24 * 3600 * 1000);
-    const commitEvents = await step.do("load all pages", () =>
+    const commitEvents = await step.do('load all pages', () =>
       octokit.paginate(
-        "GET /users/{username}/events/public",
+        'GET /users/{username}/events/public',
         { username, per_page: 100 },
         (response, done) => {
           const events = response.data.filter(
-            (event): event is CommitEvent => event.type == "PushEvent",
+            (event): event is CommitEvent => event.type == 'PushEvent',
           );
           const eventsInScope = events.filter(
             (event) => new Date(event.created_at).getTime() > cutoff.getTime(),
@@ -105,14 +105,14 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
         const { old, new: neww } = aggregatedCommits[repo][ref];
         const diff = await step.do(`load diff for ${ref} from ${repo}`, async () => {
           const { data } = await octokit.request(
-            "GET /repos/{owner}/{repo}/compare/{base}...{head}",
+            'GET /repos/{owner}/{repo}/compare/{base}...{head}',
             {
-              owner: repo.split("/")[0],
-              repo: repo.split("/")[1],
+              owner: repo.split('/')[0],
+              repo: repo.split('/')[1],
               base: old,
               head: neww,
               mediaType: {
-                format: "diff",
+                format: 'diff',
               },
             },
           );
@@ -135,7 +135,7 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
     if (batches.length > 8) {
       const discardedBatches = batches.length - 8;
       warnings.push(
-        `Only 8 batches of diffs could be scanned; ${discardedBatches} ${discardedBatches == 1 ? "batch" : "batches"} were ignored`,
+        `Only 8 batches of diffs could be scanned; ${discardedBatches} ${discardedBatches == 1 ? 'batch' : 'batches'} were ignored`,
       );
       batches = batches.slice(0, 8);
     }
@@ -143,7 +143,7 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
     let title: string;
     let message: string;
     if (payload.testRun) {
-      title = "Daily Bugs test run successful";
+      title = 'Daily Bugs test run successful';
       message = `Test run successful.
 
 Created ${batches.length} batches, made of ${diffs.length} diffs from ${commitEvents.length} commits across ${Object.keys(aggregatedCommits).length} repos.`;
@@ -167,7 +167,7 @@ ${batch
 ${diff}
 </diff>`,
   )
-  .join("\n\n")}
+  .join('\n\n')}
 
 Task:
 Identify HIGH-CONFIDENCE bugs introduced by these diffs.
@@ -219,15 +219,15 @@ Return JSON using schema:
 - "old" and "new" must be SHAs diffable with each other.
 - "description" must be 1-2 sentences, present tense, objective, and concise. It may use Markdown-style italics.
 - If you find no high-confidence bugs, output [] and nothing else.`;
-          const r = await fetch("https://ai.hackclub.com/proxy/v1/chat/completions", {
-            method: "POST",
+          const r = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
+            method: 'POST',
             headers: {
               authorization: `Bearer ${env.HCAI_KEY}`,
-              "content-type": "application/json",
+              'content-type': 'application/json',
             },
             body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [{ role: "user", content: prompt }],
+              model: 'google/gemini-3-flash-preview',
+              messages: [{ role: 'user', content: prompt }],
               reasoning: { enabled: true },
             }),
           });
@@ -238,50 +238,50 @@ Return JSON using schema:
           } = await r.json<any>();
           console.debug(message);
           const json = message.content.slice(
-            message.content.indexOf("["),
-            message.content.lastIndexOf("]") + 1,
+            message.content.indexOf('['),
+            message.content.lastIndexOf(']') + 1,
           );
           return JSON.parse(json);
         });
         bugs.push(...batchBugs);
         batchNumber++;
       }
-      console.debug("done processing batches...");
+      console.debug('done processing batches...');
 
-      title = "Your daily bugs";
+      title = 'Your daily bugs';
       message = bugs
         .map((b) => {
-          const name = b.repo.split("/")[1];
+          const name = b.repo.split('/')[1];
           return `- ${name}: ${b.description} ([file](<https://github.com/${b.repo}/blob/${b.new}/${b.path}>), [changes](<https://github.com/${b.repo}/compare/${b.old}...${b.new}>))`;
         })
-        .join("\n");
+        .join('\n');
     }
 
     if (warnings.length) {
       message = `${message}
 
-${warnings.map((w) => `⚠️ ${w}`).join("\n")}`;
+${warnings.map((w) => `⚠️ ${w}`).join('\n')}`;
     }
 
     if (!message) return;
 
-    if (method == "email") {
+    if (method == 'email') {
       if (!email) {
-        await step.do("delete token", () => deleteToken(payload.uid));
-        throw new Error("No available email");
+        await step.do('delete token', () => deleteToken(payload.uid));
+        throw new Error('No available email');
       }
-      await step.do("send email message", () => sendEmail(email, title, message));
-    } else if (method == "discord") {
+      await step.do('send email message', () => sendEmail(email, title, message));
+    } else if (method == 'discord') {
       if (!data) {
-        await step.do("delete token", () => deleteToken(payload.uid));
-        throw new Error("No available data");
+        await step.do('delete token', () => deleteToken(payload.uid));
+        throw new Error('No available data');
       }
       message = `<@${data}>
 ${message}`;
-      await step.do("send discord message", () => sendDiscord(message));
+      await step.do('send discord message', () => sendDiscord(message));
     } else {
-      await step.do("delete token", () => deleteToken(payload.uid));
-      throw new Error("Unreachable");
+      await step.do('delete token', () => deleteToken(payload.uid));
+      throw new Error('Unreachable');
     }
   }
 }

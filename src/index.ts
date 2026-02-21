@@ -1,9 +1,9 @@
-import { env } from "cloudflare:workers";
-import { Octokit } from "@octokit/rest";
-import { RequestCookieStore } from "@worker-tools/request-cookie-store";
-import { getDelivery, setDelivery } from "./delivery";
-import { deleteToken, getToken, listUIDs, setToken } from "./ghtoken";
-import { deleteAuth, getAuth, setAuth } from "./jwt";
+import { env } from 'cloudflare:workers';
+import { Octokit } from '@octokit/rest';
+import { RequestCookieStore } from '@worker-tools/request-cookie-store';
+import { getDelivery, setDelivery } from './delivery';
+import { deleteToken, getToken, listUIDs, setToken } from './ghtoken';
+import { deleteAuth, getAuth, setAuth } from './jwt';
 
 type RequestExt = Request & { urlData: URL; cookieStore: RequestCookieStore };
 
@@ -13,15 +13,15 @@ const getWorkflowTimestamp = () =>
   new Date()
     .toISOString()
     .slice(0, 22)
-    .replace(/[^0-9a-z]/gi, "-");
+    .replace(/[^0-9a-z]/gi, '-');
 
 const callback = async ({ urlData, cookieStore }: RequestExt) => {
-  const code = urlData.searchParams.get("code");
-  if (!code) throw new Response("Code not provided", { status: 400 });
+  const code = urlData.searchParams.get('code');
+  if (!code) throw new Response('Code not provided', { status: 400 });
 
-  const r = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
+  const r = await fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({
       client_id: env.GITHUB_CLIENT_ID,
       client_secret: env.GITHUB_CLIENT_SECRET,
@@ -36,44 +36,44 @@ const callback = async ({ urlData, cookieStore }: RequestExt) => {
   const accessToken = tokenData.access_token as string;
   const octokit = new Octokit({ auth: accessToken });
 
-  const { data: userData } = await octokit.request("GET /user");
+  const { data: userData } = await octokit.request('GET /user');
   const userId = userData.id.toString();
 
   await setToken(userId, accessToken);
   await setAuth(cookieStore, userId);
 
-  return redirect("/");
+  return redirect('/');
 };
 
 const changeDelivery = async (request: RequestExt) => {
   const { sub } = await getAuth(request.cookieStore);
 
   const form = await request.formData();
-  const method = form.get("method");
-  if (typeof method != "string") throw new Response("Invalid data", { status: 400 });
-  const data = form.get("data");
-  if (data && typeof data != "string") throw new Response("Invalid data", { status: 400 });
+  const method = form.get('method');
+  if (typeof method != 'string') throw new Response('Invalid data', { status: 400 });
+  const data = form.get('data');
+  if (data && typeof data != 'string') throw new Response('Invalid data', { status: 400 });
 
   await setDelivery(sub, data ? `${method}:${data}` : method);
 
-  return redirect("/");
+  return redirect('/');
 };
 
 const root = async (request: RequestExt): Promise<Response> => {
-  if (request.urlData.pathname == "/callback") {
-    if (request.method == "GET") {
+  if (request.urlData.pathname == '/callback') {
+    if (request.method == 'GET') {
       return await callback(request);
     }
-    throw new Response("Method not allowed", { status: 405 });
+    throw new Response('Method not allowed', { status: 405 });
   }
-  if (request.urlData.pathname == "/changedelivery") {
-    if (request.method == "POST") {
+  if (request.urlData.pathname == '/changedelivery') {
+    if (request.method == 'POST') {
       return await changeDelivery(request);
     }
-    throw new Response("Method not allowed", { status: 405 });
+    throw new Response('Method not allowed', { status: 405 });
   }
-  if (request.urlData.pathname == "/test") {
-    if (request.method == "POST") {
+  if (request.urlData.pathname == '/test') {
+    if (request.method == 'POST') {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
         id: `user-${sub}--manual-wet-${getWorkflowTimestamp()}`,
@@ -82,13 +82,13 @@ const root = async (request: RequestExt): Promise<Response> => {
           testRun: false,
         },
       });
-      await request.cookieStore.set({ name: "flash-run-started", value: "yes", httpOnly: true });
-      return redirect("/");
+      await request.cookieStore.set({ name: 'flash-run-started', value: 'yes', httpOnly: true });
+      return redirect('/');
     }
-    throw new Response("Method not allowed", { status: 405 });
+    throw new Response('Method not allowed', { status: 405 });
   }
-  if (request.urlData.pathname == "/debug") {
-    if (request.method == "POST") {
+  if (request.urlData.pathname == '/debug') {
+    if (request.method == 'POST') {
       const { sub } = await getAuth(request.cookieStore);
       await env.WORKFLOW.create({
         id: `user-${sub}--manual-dry-${getWorkflowTimestamp()}`,
@@ -97,60 +97,60 @@ const root = async (request: RequestExt): Promise<Response> => {
           testRun: true,
         },
       });
-      await request.cookieStore.set({ name: "flash-debug-started", value: "yes", httpOnly: true });
-      return redirect("/");
+      await request.cookieStore.set({ name: 'flash-debug-started', value: 'yes', httpOnly: true });
+      return redirect('/');
     }
-    throw new Response("Method not allowed", { status: 405 });
+    throw new Response('Method not allowed', { status: 405 });
   }
-  if (request.urlData.pathname == "/") {
+  if (request.urlData.pathname == '/') {
     let sub: string;
     try {
       ({ sub } = await getAuth(request.cookieStore));
     } catch {
-      return await env.ASSETS.fetch(new URL("/index-loggedout.html", request.url));
+      return await env.ASSETS.fetch(new URL('/index-loggedout.html', request.url));
     }
 
     let userData: { login: string };
     try {
       const token = await getToken(sub);
       const octokit = new Octokit({ auth: token });
-      ({ data: userData } = await octokit.request("GET /user"));
+      ({ data: userData } = await octokit.request('GET /user'));
     } catch {
       await deleteToken(sub);
       await deleteAuth(request.cookieStore);
-      const r = await env.ASSETS.fetch(new URL("/index-loggedout.html", request.url));
+      const r = await env.ASSETS.fetch(new URL('/index-loggedout.html', request.url));
       let html = await r.text();
-      html = html.replace("Enable Daily Bugs", "Reenable Daily Bugs");
+      html = html.replace('Enable Daily Bugs', 'Reenable Daily Bugs');
       return new Response(html, {
         status: r.status,
         headers: r.headers,
       });
     }
 
-    const r = await env.ASSETS.fetch(new URL("/index-loggedin.html", request.url));
+    const r = await env.ASSETS.fetch(new URL('/index-loggedin.html', request.url));
     let html = await r.text();
     const conditions = new Set<string>();
-    conditions.add((await getDelivery(sub)).split(":")[0]);
-    if (await request.cookieStore.get("flash-run-started")) {
-      await request.cookieStore.delete("flash-run-started");
-      conditions.add("run-started");
-      html = html.replace("Test on yesterday's commits", "Test again");
+    conditions.add((await getDelivery(sub)).split(':')[0]);
+    if (await request.cookieStore.get('flash-run-started')) {
+      await request.cookieStore.delete('flash-run-started');
+      conditions.add('run-started');
+      html = html.replace("Test on yesterday's commits", 'Test again');
     }
-    if (await request.cookieStore.get("flash-debug-started")) {
-      await request.cookieStore.delete("flash-debug-started");
-      conditions.add("debug-started");
-      html = html.replace("Test in debug mode", "Test again");
+    if (await request.cookieStore.get('flash-debug-started')) {
+      await request.cookieStore.delete('flash-debug-started');
+      conditions.add('debug-started');
+      html = html.replace('Test in debug mode', 'Test again');
     }
-    html = html.replace("[username]", userData.login);
+    html = html.replace('[username]', userData.login);
     html = html.replace(/<!-- via (.+) -->[^]+?<!-- end via \1 -->/g, (text, thisMethod) =>
-      conditions.has(thisMethod) ? text : "",
+      conditions.has(thisMethod) ? text : '',
     );
     return new Response(html, {
       status: r.status,
       headers: r.headers,
     });
   }
-  throw new Response("Page not found", { status: 404 });
+  throw new Response('Page not found', { status: 404 });
 };
 const rootWithCatch = async (request: RequestExt): Promise<Response> => {
   try {
@@ -186,4 +186,4 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>;
-export { BugWorkflow } from "./workflow";
+export { BugWorkflow } from './workflow';
