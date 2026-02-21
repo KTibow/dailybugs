@@ -116,9 +116,13 @@ export class BugWorkflow extends WorkflowEntrypoint<Env, Params> {
               },
             },
           );
-          return collapseLockFiles(data as unknown as string);
+          const collapsed = collapseLockFiles(data as unknown as string);
+          if (collapsed.length > 100000 * 4) {
+            return undefined;
+          }
+          return collapsed;
         });
-        if (diff.length > 100000 * 4) {
+        if (diff == undefined) {
           warnings.push(`Changes on ${ref} from ${repo} were ignored`);
           continue;
         }
