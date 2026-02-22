@@ -257,7 +257,7 @@ Return JSON using schema:
         .join('\n');
       if (payload.type == 'manual-wet') {
         message ||=
-          "In this manual run, no bugs were found. For future automatic runs we'll only email you when we find bugs.";
+          "In this manual run, no bugs were found. For future automatic runs we'll only notify you when we find bugs.";
       }
     }
 
