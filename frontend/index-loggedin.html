@@ -116,7 +116,13 @@
           ⚠️ You need to be in <a href="https://discord.gg/yhYwdmx8RG">this Discord</a> to see the
           bugs.
         </p>
-        <input name="data" placeholder="You must also put your Discord ID here" required />
+        <input
+          type="number"
+          pattern="\d{17,20}"
+          name="data"
+          placeholder="You must also put your Discord ID here"
+          required
+        />
         <button class="button">Switch to sending via Discord</button>
       </form>
     </dialog>
